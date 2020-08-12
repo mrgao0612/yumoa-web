@@ -1,0 +1,102 @@
+<template>
+    <div class="login-container">
+        <el-form ref="loginForm" status-icon :rules="rules" :model="loginForm" label-width="80px" class="login-form">
+            <h2 class="login-title">YumOA</h2>
+            <el-form-item prop="mobile">
+                <el-input v-model="loginForm.mobile" prefix-icon="el-icon-user" placeholder="账号/手机号" autocomplete="false" clearable></el-input>
+            </el-form-item>
+            <el-form-item prop="password">
+                <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" placeholder="密码" autocomplete="false" clearable></el-input>
+            </el-form-item>
+
+            <el-form-item>
+                <el-button type="primary" v-on:click="submitForm('loginForm')">登录</el-button>
+            </el-form-item>
+        </el-form>
+    </div>
+</template>
+
+<script>
+export default {
+  data () {
+    var checkMobile = (rule, value, callback) => {
+      if (value === '') {
+        callback(new Error('请输入手机号'))
+      } else if (!this.isMobile(value)) {
+        callback(new Error('请输入正确手机号'))
+      } else {
+        callback()
+      }
+    }
+    return {
+      loginForm: {
+        mobile: '',
+        password: ''
+      },
+      rules: {
+        mobile: [
+          {required: true, validator: checkMobile, trigger: 'blur'}
+        ],
+        password: [
+          {required: true, message: '密码不能为空', trigger: 'blur'}
+        ]
+      }
+    }
+  },
+  methods: {
+    submitForm (formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.$http.post('/api/login', this.loginForm)
+            .then(res => {
+              console.log(res)
+              let data = res.data
+              if (data['code'] === 200) {
+                this.$message.success('登录成功')
+                this.$router.push('/')
+              } else {
+                this.$message.error('账号或密码错误')
+              }
+            }).catch(error => {
+              console.log(error)
+              this.$message.error('账号或密码错误')
+            })
+        } else {
+          return false
+        }
+      })
+    },
+    isMobile (mobile) {
+      if (!/^1(3|4|5|6|7|8)\d{9}$/.test(mobile)) {
+        return false
+      } else {
+        return true
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+.login-form {
+    width: 350px;
+    margin: 180px auto;
+    background-color: rgb(255, 255, 255, 0.6);
+    padding: 30px;
+    border-radius: 20px;
+}
+
+.login-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: url("../../assets/login.jpg");
+    background-size: cover;
+}
+
+.login-title {
+    color: #303133;
+    text-align: center;
+}
+
+</style>
