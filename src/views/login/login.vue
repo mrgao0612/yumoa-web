@@ -6,7 +6,7 @@
                 <el-input v-model="loginForm.mobile" prefix-icon="el-icon-user" placeholder="账号/手机号" autocomplete="false" clearable></el-input>
             </el-form-item>
             <el-form-item prop="password">
-                <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" placeholder="密码" autocomplete="false" clearable></el-input>
+                <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" type="password" placeholder="密码" autocomplete="false" clearable></el-input>
             </el-form-item>
 
             <el-form-item>
@@ -17,6 +17,8 @@
 </template>
 
 <script>
+import { mapMutations } from 'vuex'
+
 export default {
   data () {
     var checkMobile = (rule, value, callback) => {
@@ -44,34 +46,42 @@ export default {
     }
   },
   methods: {
+    ...mapMutations(['setToken']),
     submitForm (formName) {
+      let _this = this
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.$http.post('/api/login', this.loginForm)
-            .then(res => {
-              console.log(res)
-              let data = res.data
-              if (data['code'] === 200) {
+          this.$axios({
+            method: 'post',
+            url: '/api/login',
+            data: this.loginForm,
+            headers: {
+              'Authorization': ''
+            }
+          }).then(res => {
+            let data = res.data
+            if (data['code'] === 200) {
+              if (data['data']['token']) {
+                _this.setToken([{Authorization: data['data']}])
                 this.$message.success('登录成功')
-                this.$router.push('/')
+                this.$router.push('/home')
               } else {
-                this.$message.error('账号或密码错误')
+                this.$router.replace('/login')
               }
-            }).catch(error => {
-              console.log(error)
+            } else {
               this.$message.error('账号或密码错误')
-            })
+            }
+          }).catch(err => {
+            console.log(err)
+            this.$message.error('账号或密码错误')
+          })
         } else {
           return false
         }
       })
     },
     isMobile (mobile) {
-      if (!/^1(3|4|5|6|7|8)\d{9}$/.test(mobile)) {
-        return false
-      } else {
-        return true
-      }
+      return /^1([345678])\d{9}$/.test(mobile)
     }
   }
 }
