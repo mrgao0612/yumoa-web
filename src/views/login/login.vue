@@ -21,7 +21,7 @@ import { mapMutations } from 'vuex'
 
 export default {
   data () {
-    var checkMobile = (rule, value, callback) => {
+    let checkMobile = (rule, value, callback) => {
       if (value === '') {
         callback(new Error('请输入手机号'))
       } else if (!this.isMobile(value)) {
@@ -46,7 +46,7 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(['setToken']),
+    ...mapMutations(['setUserInfo']),
     submitForm (formName) {
       let _this = this
       this.$refs[formName].validate(valid => {
@@ -62,9 +62,9 @@ export default {
             let data = res.data
             if (data['code'] === 200) {
               if (data['data']['token']) {
-                _this.setToken([{Authorization: data['data']}])
+                _this.setUserInfo([{UserInfo: data['data']}])
                 this.$message.success('登录成功')
-                this.$router.push('/home')
+                this.$router.push('/index')
               } else {
                 this.$router.replace('/login')
               }

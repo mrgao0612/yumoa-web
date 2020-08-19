@@ -25,8 +25,9 @@ new Vue({
 
 axios.interceptors.request.use(config => {
   if (config.url !== '/api/login') {
-    if (localStorage.getItem('Authorization')) {
-      config.headers.Authorization = localStorage.getItem('Authorization')
+    let userInfo = localStorage.getItem('UserInfo')
+    if (userInfo) {
+      config.headers.Authorization = JSON.parse(userInfo)['token']
     }
   }
   return config
@@ -40,7 +41,7 @@ axios.interceptors.response.use(res => {
   if (err.response) {
     switch (err.response.status) {
       case 401:
-        localStorage.removeItem('Authorization')
+        localStorage.removeItem('UserInfo')
         this.$router.push('/login')
     }
   }

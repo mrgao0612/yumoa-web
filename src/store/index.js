@@ -4,12 +4,12 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    Authorization: localStorage.getItem('Authorization') ? localStorage.getItem('Authorization') : ''
+    UserInfo: localStorage.getItem('UserInfo') ? JSON.parse(localStorage.getItem('UserInfo')) : ''
   },
   mutations: {
-    setToken (state, user) {
-      state.Authorization = user[0].Authorization
-      localStorage.setItem('Authorization', user[0].Authorization)
+    setUserInfo (state, user) {
+      state.UserInfo = user[0].UserInfo
+      localStorage.setItem('UserInfo', JSON.stringify(user[0].UserInfo))
     }
   }
 })
