@@ -1,9 +1,17 @@
 <template>
   <div class="app-container">
+    <el-row style="margin: 20px 0;">
+      <el-col :span="24">
+        <el-breadcrumb separator=">">
+          <el-breadcrumb-item>流程管理</el-breadcrumb-item>
+          <el-breadcrumb-item>流程列表</el-breadcrumb-item>
+        </el-breadcrumb>
+      </el-col>
+    </el-row>
     <el-card>
       <div class="filter-container">
         <el-input v-model="keyword" placeholder="模型名称" style="width: 200px;" class="filter-item"/>
-        <el-button class="filter-item" type="primary" icon="el-icon-search" @click="queryList">搜索</el-button>
+        <el-button class="filter-item" type="primary" icon="el-icon-search" @click="initList">搜索</el-button>
         <el-button class="filter-item" style="margin-left: 10px;" type="success" icon="el-icon-plus" @click="handleCreate">添加</el-button>
       </div>
       <el-table :key="tableKey" v-loading="loading" :data="workList" fit stripe highlight-current-row style="width: 100%; margin: 20px 0;" :header-cell-style="{background:'#eef1f6',color:'#606266'}">
@@ -116,7 +124,7 @@ export default {
     }
   },
   mounted () {
-    this.queryList()
+    this.initList()
   },
   methods: {
     handleSizeChange (val) {
@@ -127,7 +135,7 @@ export default {
       this.pageNum = val
       this.initList()
     },
-    queryList () {
+    initList () {
       this.loading = true
       this.$axios({
         method: 'GET',
@@ -168,7 +176,7 @@ export default {
           if (res.data['code'] === 200) {
             this.$message.success('部署成功')
             this.loading = true
-            this.queryList()
+            this.initList()
           } else {
             this.$message.warning(res.data['msg'])
             this.loading = false
@@ -219,7 +227,7 @@ export default {
         }).then(res => {
           if (res.data['code'] === 200) {
             this.$message.success('删除成功')
-            this.queryList()
+            this.initList()
           }
         })
       }).catch(() => {
@@ -251,7 +259,7 @@ export default {
             if (data && data['code'] === 200) {
               this.$message.success('创建模型成功')
               this.showDialog = false
-              this.queryList()
+              this.initList()
             } else {
               this.$message.warning('创建模型失败')
             }

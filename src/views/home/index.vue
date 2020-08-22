@@ -29,12 +29,12 @@
             <i v-show="!isCollapsed" class="el-icon-d-arrow-left"></i>
             <i v-show="isCollapsed" class="el-icon-d-arrow-right"></i>
           </div>
-          <el-menu class="el-menu-demo tab-page" mode="horizontal"
+          <el-menu :default-active="onRoute" router class="el-menu-demo tab-page" mode="horizontal"
                    @select="handleSelect" active-text-color="#409EFF">
-            <el-menu-item index="1">处理中心</el-menu-item>
-            <el-submenu index="2">
+            <el-menu-item index="/index/processCenter">处理中心</el-menu-item>
+            <el-submenu index="/workbench">
               <template slot="title">我的工作台</template>
-              <el-menu-item index="2-1">选项1</el-menu-item>
+              <el-menu-item index="/index/applyList">我的申请</el-menu-item>
               <el-menu-item index="2-2">选项2</el-menu-item>
               <el-menu-item index="2-3">选项3</el-menu-item>
             </el-submenu>
@@ -68,10 +68,15 @@ export default {
   name: 'index',
   data () {
     return {
-      defaultActive: '/index/home',
+      defaultActive: '',
       username: '',
       isCollapsed: false,
       navList: ''
+    }
+  },
+  computed: {
+    onRoute () {
+      return this.$route.path
     }
   },
   methods: {
