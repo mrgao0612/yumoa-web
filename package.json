@@ -11,13 +11,17 @@
     "e2e": "node test/e2e/runner.js",
     "test": "npm run unit && npm run e2e",
     "lint": "eslint --ext .js,.vue src test/unit test/e2e/specs",
-    "build": "node build/build.js"
+    "build": "node build/build.js",
+    "proto": "pbjs -t json-module -w commonjs -o src/proto/proto.js src/proto/*.proto"
   },
   "dependencies": {
     "axios": "^0.19.2",
     "element-ui": "^2.4.5",
+    "google-protobuf": "^3.13.0",
     "js-base64": "^3.4.5",
+    "protobufjs": "^6.10.1",
     "vue": "^2.5.2",
+    "vue-native-websocket": "^2.0.14",
     "vue-router": "^3.0.1"
   },
   "devDependencies": {

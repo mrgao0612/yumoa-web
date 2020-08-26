@@ -8,8 +8,14 @@ import 'element-ui/lib/theme-chalk/index.css'
 import axios from 'axios'
 import store from './store'
 import './styles/index.scss'
+import WebSocket from 'vue-native-websocket'
 
 Vue.use(ElementUI)
+Vue.use(WebSocket, 'ws://localhost:8989/ws', {
+  reconnection: true, // (Boolean)是否自动重连，默认false
+  reconnectionAttempts: 5, // 重连次数
+  reconnectionDelay: 3000 // 再次重连等待时常
+})
 
 Vue.config.productionTip = false
 Vue.prototype.$axios = axios
