@@ -40,14 +40,18 @@
             </el-submenu>
           </el-menu>
           <div class="index-header-userinfo">
+            <a @click="showMessageDialog = true" style="cursor:pointer;">
+              <i class="el-icon-bell" style="font-size: 23px;margin-right: 20px;"></i>
+              <div class="showNum">
+                <span>99+</span>
+              </div>
+            </a>
             <el-dropdown trigger="hover" :hide-on-click="false">
               <span class="el-dropdown-link">
                 {{ username }}
                 <i class="el-icon-arrow-down el-icon--right"></i>
               </span>
               <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item>我的消息</el-dropdown-item>
-                <el-dropdown-item>我的主页</el-dropdown-item>
                 <el-dropdown-item divided @click.native="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
@@ -57,6 +61,7 @@
           <template>
             <router-view />
             <div class="chat-box">
+              <header>{{title}}</header>
               <div class="msg-box" ref="msg-box">
                 <div class="msg" v-for="(i,index) in list" :key="index"
                      :style="i.senderId === userId?'flex-direction:row-reverse':''">
@@ -73,19 +78,49 @@
                 </div>
               </div>
               <div class="input-box">
-                <el-input ref="sendMsg" v-model="contentText" @keyup.enter="sendMessage()"></el-input>
-                <el-button class="btn" type="primary" @click="sendMessage()">发送</el-button>
+                <el-input ref="sendMsg" class="message-input" v-model="contentText" @keyup.enter.native="sendMessage()"></el-input>
+                <el-button class="btn" type="primary" :class="{['btn-active']:contentText}" @click="sendMessage()">发送</el-button>
               </div>
             </div>
           </template>
         </el-main>
       </el-container>
     </el-container>
+    <el-dialog :visible.sync="showMessageDialog" width="41%" top="13vh" :close-on-click-modal="false">
+      <div class="message">
+        <div class="column left">
+          <a style="cursor:pointer;">
+            <img src="@/assets/avatar.jpg" style="width: 36px;height: 36px;border-radius: 10%" alt=""/>
+          </a>
+          <div style="margin-top: 25px;">
+            <a id="a-sms" style="cursor:pointer;" @click="openSms" @mouseover="smsChange" @mouseleave="smsRestore">
+              <svg id="svg-sms" class="icon-sms" aria-hidden="true" style="font-size: 36px">
+                <use :xlink:href="smsHref" />
+              </svg>
+            </a>
+          </div>
+          <div style="margin-top: 25px">
+            <a style="cursor:pointer;" @click="openBook" @mouseover="bookChange" @mouseleave="bookRestore">
+              <svg id="svg-book" class="icon-book" aria-hidden="true" style="font-size: 36px">
+                <use :xlink:href="bookHref" />
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="column middle">
+          这是消息列表
+        </div>
+        <div class="column right">
+          这是消息对话窗口
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import protoRoot from '@/proto/proto.js'
+import $ from 'jquery'
 const userInfo = JSON.parse(localStorage.getItem('UserInfo'))
 export default {
   name: 'index',
@@ -96,8 +131,12 @@ export default {
       isCollapsed: false,
       navList: '',
       list: [], // 聊天记录的数组
+      title: 'YumOA聊天室',
       contentText: '', // input输入的值
-      userId: userInfo['id']
+      userId: userInfo['id'],
+      showMessageDialog: false,
+      smsHref: '#el-ali-icon-sms_blue',
+      bookHref: '#el-ali-icon-addressbook'
     }
   },
   computed: {
@@ -176,26 +215,31 @@ export default {
     sendMessage () {
       let _this = this
       _this.$refs['sendMsg'].focus()
-      let content = {
-        senderId: '' + userInfo['id'] + '',
-        receiverId: 2,
-        message: _this.contentText
-      }
-      let data = {
-        cmd: 0,
-        requestId: '' + userInfo['id'] + '',
-        content: JSON.stringify(content)
-      }
-      this.requestMessageEncoder({
-        data: data,
-        success: function (message) {
-          _this.$socket.send(message)
-          _this.contentText = ''
-          setTimeout(() => {
-            _this.scrollBottom()
-          }, 300)
+      if (_this.contentText) {
+        let content = {
+          senderId: userInfo['id'],
+          receiverId: 2,
+          message: _this.contentText
         }
-      })
+        let data = {
+          cmd: 0,
+          requestId: '' + userInfo['id'] + '',
+          content: JSON.stringify(content)
+        }
+        this.requestMessageEncoder({
+          data: data,
+          success: function (message) {
+            _this.$socket.send(message)
+            _this.contentText = ''
+            if (content['receiverId'] !== userInfo['id']) {
+              _this.list.push(content)
+            }
+            setTimeout(() => {
+              _this.scrollBottom()
+            }, 300)
+          }
+        })
+      }
     },
     // 滚动条到底部
     scrollBottom () {
@@ -258,6 +302,30 @@ export default {
           complete()
         }
       }
+    },
+    openSms () {
+      this.smsHref = '#el-ali-icon-sms_blue'
+      this.bookHref = '#el-ali-icon-addressbook'
+    },
+    openBook () {
+      this.smsHref = '#el-ali-icon-sms'
+      this.bookHref = '#el-ali-icon-addressbook_blue'
+    },
+    smsChange () {
+      $('#svg-sms').css({opacity: 1})
+    },
+    smsRestore () {
+      if (this.smsHref === '#el-ali-icon-sms') {
+        $('#svg-sms').css({opacity: 0.75})
+      }
+    },
+    bookChange () {
+      $('#svg-book').css({opacity: 1})
+    },
+    bookRestore () {
+      if (this.bookHref === '#el-ali-icon-addressbook') {
+        $('#svg-book').css({opacity: 0.75})
+      }
     }
   },
   mounted: function () {
@@ -283,6 +351,20 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  .showNum {
+    position: absolute;
+    color: white;
+    font-size: 10px;
+    background-color: red;
+    width: 20px;
+    height: 20px;
+    line-height: 23px;
+    left: 10%;
+    top: 18%;
+    text-align: center;
+    -webkit-border-radius: 24px;
+    border-radius: 24px;
+  }
   .chat-box {
     margin: 0 auto;
     background: #fafafa;
@@ -290,6 +372,19 @@ export default {
     height: 70%;
     width: 100%;
     max-width: 700px;
+    header {
+      position: fixed;
+      width: 100%;
+      height: 3rem;
+      background: #409eff;
+      max-width: 700px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      color: white;
+      font-size: 1rem;
+    }
     .msg-box {
       position: absolute;
       height: calc(100% - 6.5rem);
@@ -305,6 +400,8 @@ export default {
         justify-content: flex-start !important;
         .user-head {
           min-width: 2.5rem;
+          width: 20%;
+          width: 2.5rem;
           height: 2.5rem;
           border-radius: 50%;
           background: #f1f1f1;
@@ -349,7 +446,7 @@ export default {
               transform: translateX(0px);
             }
           }
-          @keyframes toright {
+          @keyframes toRight {
             0% {
               opacity: 0;
               transform: translateX(10px);
@@ -363,7 +460,7 @@ export default {
       }
     }
     .input-box {
-      padding: 0 0.5rem;
+      padding: 0 0;
       position: absolute;
       bottom: 0;
       width: 100%;
@@ -373,7 +470,7 @@ export default {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      input {
+      .message-input {
         height: 2.3rem;
         display: inline-block;
         width: 100%;
@@ -391,12 +488,53 @@ export default {
         color: white;
         text-align: center;
         border-radius: 0.2rem;
-        margin-left: 0.5rem;
+        margin-right: 1.0rem;
         transition: 0.5s;
       }
       .btn-active {
         background: #409eff;
       }
+    }
+  }
+  .message {
+    height: 48vh;
+    max-width: 880px;
+    white-space: normal;
+    .column {
+      padding: 11px;
+      float: left;
+      display: inline-block;
+    }
+    .column.left {
+      width: 5%;
+      height: 100%;
+      max-width: 78px;
+      background: #303133;
+      .icon-sms {
+        width: 1em; height: 1em;
+        vertical-align: -0.15em;
+        fill: currentColor;
+        overflow: hidden;
+        opacity: 0.75;
+      }
+      .icon-book {
+        width: 1em; height: 1em;
+        vertical-align: -0.15em;
+        fill: currentColor;
+        overflow: hidden;
+        opacity: 0.75
+      }
+    }
+    .column.middle {
+      width: 33%;
+      height: 100%;
+      max-width: 200px;
+      background: #eeeeee;
+    }
+    .column.right {
+      height: 100%;
+      width: 58%;
+      max-width: 550px;
     }
   }
 </style>
