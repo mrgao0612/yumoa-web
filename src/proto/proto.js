@@ -11,26 +11,33 @@ var $root = ($protobuf.roots['default'] || ($protobuf.roots['default'] = new $pr
   .addJSON({
     Message: {
       fields: {
-        requestId: {
+        senderId: {
           type: 'string',
           id: 1
         },
+        senderAvatar: {
+          type: 'string',
+          id: 2
+        },
+        receiverId: {
+          type: 'string',
+          id: 3
+        },
         cmd: {
           type: 'CommandType',
-          id: 2
+          id: 4
         },
         content: {
           type: 'string',
-          id: 3
+          id: 5
         }
       },
       nested: {
         CommandType: {
           values: {
-            NORMAL: 0,
-            HEARTBEAT_REQUEST: 1,
-            HEARTBEAT_RESPONSE: 2,
-            OPEN: 3
+            MESSAGE: 0,
+            NOTICE: 1,
+            OPEN: 2
           }
         }
       }

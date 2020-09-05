@@ -9,6 +9,7 @@ import axios from 'axios'
 import store from './store'
 import './styles/index.scss'
 import WebSocket from 'vue-native-websocket'
+import twemoji from 'twemoji'
 
 Vue.use(ElementUI)
 Vue.use(WebSocket, 'ws://localhost:8989/ws', {
@@ -19,6 +20,11 @@ Vue.use(WebSocket, 'ws://localhost:8989/ws', {
 
 Vue.config.productionTip = false
 Vue.prototype.$axios = axios
+Vue.directive('emoji', {
+  inserted (el) {
+    el.innerHTML = twemoji.parse(el.innerHTML)
+  }
+})
 
 /* eslint-disable no-new */
 new Vue({

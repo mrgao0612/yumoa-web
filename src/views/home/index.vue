@@ -60,28 +60,6 @@
         <el-main class="index-body">
           <template>
             <router-view />
-            <div class="chat-box">
-              <header>{{title}}</header>
-              <div class="msg-box" ref="msg-box">
-                <div class="msg" v-for="(i,index) in list" :key="index"
-                     :style="i.senderId === userId?'flex-direction:row-reverse':''">
-                  <div class="user-head">
-                    <div
-                      class="head"
-                      :style="`background: hsl(${getUserHead(i.senderId,'bck')}, 88%, 62%); clip-path:polygon(${getUserHead(i.senderId,'polygon')}% 0,100% 100%,0% 100%); transform: rotate(${getUserHead(i.senderId,'rotate')}deg)`"
-                    ></div>
-                  </div>
-                  <div class="user-msg">
-                    <span :style="i.senderId === userId?' float: right;':''"
-                          :class="i.senderId === userId?'right':'left'">{{i.message}}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="input-box">
-                <el-input ref="sendMsg" class="message-input" v-model="contentText" @keyup.enter.native="sendMessage()"></el-input>
-                <el-button class="btn" type="primary" :class="{['btn-active']:contentText}" @click="sendMessage()">发送</el-button>
-              </div>
-            </div>
           </template>
         </el-main>
       </el-container>
@@ -108,10 +86,70 @@
           </div>
         </div>
         <div class="column middle">
-          这是消息列表
+          <el-row style="display: block;margin-top: 7px;">
+            <el-col :span="20">
+              <el-input prefix-icon="el-icon-search" size="mini" placeholder="搜索" v-model="keyword" @keydown.enter.native="initDialogueList"></el-input>
+            </el-col>
+            <el-col :span="2" style="margin-left: 10px;">
+              <el-button size="mini" type="info" plain>
+                <i class="el-icon-plus" style="font-size: 11px;"></i>
+              </el-button>
+            </el-col>
+          </el-row>
+          <el-row v-for="(dialogue, index) in dialogueList" :key="index" style="display: block;margin-top: 12px;">
+            <el-col :span="24" :id="'msgCol' + index" class="dialogue-col" style="padding: 10px 3px 8px 3px;"
+                    v-on:click.native="openChatRight(dialogue, index)">
+              <div style="display: inline-block;">
+                <el-avatar shape="square" :src="dialogue.avatar"></el-avatar>
+              </div>
+              <div style="display: inline-block;width: 167px;max-width: 167px; padding-left: 5px">
+                  <el-col style="color: #000000;font-size: 14px;">
+                    <span>{{ dialogue.name }}</span>
+                    <span style="color: #999;font-size: 11px;float: right;display: inline-block">{{ dialogue.msgDate }}</span>
+                  </el-col>
+                  <el-col style="color: #999;font-size: 11px;padding-top: 5px">{{ dialogue.content }}</el-col>
+              </div>
+            </el-col>
+          </el-row>
         </div>
-        <div class="column right">
-          这是消息对话窗口
+        <div class="column right" v-show="chatRightShow">
+          <div class="wxchatBorderRightTop">
+            <div class="wxchatName">{{ chatTitle }}</div>
+            <div class="wxchatMore">
+              <i class="el-icon-more"></i>
+            </div>
+          </div>
+          <div class="wxchatBorderRightMid" ref="msg-box">
+            <div v-for="(message, index) in messageList" :key="index">
+              <div v-show="message.receiverId === userId" style="margin-left: 20px;margin-top: 15px;">
+                <el-row>
+                  <el-col :span="2">
+                    <el-avatar shape="square" :src="receiverAvatar" style="width: 35px;height: 35px;"></el-avatar>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="chatPop1">
+                      <span style="line-height: 23px;" :id="'receiverRef' + index"></span>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+              <div v-show="message.senderId === userId" style="margin-left: 20px;margin-top: 15px;">
+                <el-row>
+                  <el-col :span="21">
+                    <div class="chatPop2">
+                      <span style="line-height: 23px;" :id="'senderRef' + index"></span>
+                    </div>
+                  </el-col>
+                  <el-col :span="2">
+                    <el-avatar shape="square" :src="senderAvatar" style="width: 35px;height: 35px;"></el-avatar>
+                  </el-col>
+                </el-row>
+              </div>
+            </div>
+          </div>
+          <div class="wxchatBorderRightBottom">
+            <Editor :memberList="memberList" @send-file="sendFile" @send-message="sendMessage"/>
+          </div>
         </div>
       </div>
     </el-dialog>
@@ -121,6 +159,7 @@
 <script>
 import protoRoot from '@/proto/proto.js'
 import $ from 'jquery'
+import Editor from '@/components/Editor.vue'
 const userInfo = JSON.parse(localStorage.getItem('UserInfo'))
 export default {
   name: 'index',
@@ -130,19 +169,51 @@ export default {
       username: '',
       isCollapsed: false,
       navList: '',
-      list: [], // 聊天记录的数组
-      title: 'YumOA聊天室',
-      contentText: '', // input输入的值
-      userId: userInfo['id'],
+      messageList: [], // 聊天记录的数组
+      messageListLength: 0,
+      userId: '' + userInfo['id'],
       showMessageDialog: false,
       smsHref: '#el-ali-icon-sms_blue',
-      bookHref: '#el-ali-icon-addressbook'
+      bookHref: '#el-ali-icon-addressbook',
+      emojiHref: '#el-ali-icon-face',
+      keyword: '',
+      dialogueList: [
+        {
+          name: '张三',
+          avatar: require('@/assets/zhangsan.jpeg'),
+          content: '国庆有安排吗',
+          msgDate: '2020/09/02'
+        },
+        {
+          name: '无异烦',
+          avatar: require('@/assets/skr.jpeg'),
+          content: '最近加拿大不好混呀',
+          msgDate: '2020/09/01'
+        }
+      ],
+      chatTitle: '',
+      chatRightShow: false,
+      receiverAvatar: '',
+      senderAvatar: '',
+      showEmojiDialog: false,
+      memberList: [
+        { name: '张三', id: 'zhangsan', selected: false },
+        { name: '李四', id: 'lisi', selected: false },
+        { name: '王五', id: 'wangwu', selected: false },
+        { name: '赵六', id: 'zhaoliu', selected: false },
+        { name: '张三四', id: 'zhangsansi', selected: false },
+        { name: '李四五', id: 'lisiwu', selected: false },
+        { name: '王五六', id: 'wangwuliu', selected: false }
+      ]
     }
   },
   computed: {
     onRoute () {
       return this.$route.path
     }
+  },
+  components: {
+    Editor
   },
   created () {
     this.initWebSocket()
@@ -183,8 +254,8 @@ export default {
       console.log('WebSocket连接成功')
       let _this = this
       let data = {
-        cmd: 3,
-        requestId: '' + userInfo['id'] + '',
+        cmd: 2,
+        senderId: '' + userInfo['id'],
         content: '连接成功'
       }
       _this.requestMessageEncoder({
@@ -201,7 +272,7 @@ export default {
       this.responseMessageDecoder({
         data: e.data,
         success: function (message) {
-          _this.list.push(JSON.parse(message['content']))
+          if (message['cmd'] === 0 && message['receiverId'] === this.userId) { _this.messageList.push(message) }
         }
       })
     },
@@ -212,51 +283,30 @@ export default {
     websocketClose () {
       console.log('断开连接')
     },
-    sendMessage () {
+    sendMessage (childNodes, innerHTML) {
+      console.log(childNodes)
       let _this = this
-      _this.$refs['sendMsg'].focus()
-      if (_this.contentText) {
-        let content = {
-          senderId: userInfo['id'],
-          receiverId: 2,
-          message: _this.contentText
-        }
-        let data = {
-          cmd: 0,
-          requestId: '' + userInfo['id'] + '',
-          content: JSON.stringify(content)
-        }
-        this.requestMessageEncoder({
-          data: data,
-          success: function (message) {
-            _this.$socket.send(message)
-            _this.contentText = ''
-            if (content['receiverId'] !== userInfo['id']) {
-              _this.list.push(content)
-            }
-            setTimeout(() => {
-              _this.scrollBottom()
-            }, 300)
-          }
-        })
+      let data = {
+        cmd: 0,
+        senderId: '' + userInfo['id'],
+        receiverId: '2',
+        content: innerHTML
       }
+      this.requestMessageEncoder({
+        data: data,
+        success: function (message) {
+          // _this.$socket.send(message)
+          _this.messageList.push(data)
+          setTimeout(() => {
+            _this.scrollBottom()
+          }, 300)
+        }
+      })
     },
     // 滚动条到底部
     scrollBottom () {
       let el = this.$refs['msg-box']
       el.scrollTop = el.scrollHeight
-    },
-    getUserHead (id, type) {
-      let ID = String(id)
-      if (type === 'bck') {
-        return Number(ID.substring(ID.length - 3))
-      }
-      if (type === 'polygon') {
-        return Number(ID.substring(ID.length - 2))
-      }
-      if (type === 'rotate') {
-        return Number(ID.substring(ID.length - 3))
-      }
     },
     requestMessageEncoder (obj) {
       let data = obj.data
@@ -309,6 +359,7 @@ export default {
     },
     openBook () {
       this.smsHref = '#el-ali-icon-sms'
+      $('#svg-sms').css({opacity: 0.75})
       this.bookHref = '#el-ali-icon-addressbook_blue'
     },
     smsChange () {
@@ -326,6 +377,22 @@ export default {
       if (this.bookHref === '#el-ali-icon-addressbook') {
         $('#svg-book').css({opacity: 0.75})
       }
+    },
+    sendFile (file) {
+      console.log(file)
+    },
+    initDialogueList () {
+    },
+    openChatRight (dialogue, index) {
+      $('.dialogue-col').each((index, element) => {
+        $('#' + element.getAttribute('id')).css({background: '#eeeeee'})
+      })
+      $('#' + 'msgCol' + index).css({background: '#D8D8D8'})
+      this.chatRightShow = true
+      this.chatTitle = dialogue.name
+      this.messageList = []
+      this.messageListLength = 0
+      this.receiverAvatar = dialogue.avatar
     }
   },
   mounted: function () {
@@ -346,6 +413,21 @@ export default {
       }
     }).catch(() => {})
     this.defaultActive = this.$route.path
+  },
+  updated () {
+    this.$nextTick(() => {
+      if (this.messageList.length > 0 && this.messageListLength !== this.messageList.length) {
+        let el
+        const message = this.messageList[this.messageList.length - 1]
+        if (message.receiverId !== this.userId) {
+          el = $('#' + 'senderRef' + (this.messageList.length - 1))
+        } else {
+          el = $('#' + 'receiverRef' + (this.messageList.length - 1))
+        }
+        el.append(message.content)
+        this.messageListLength = this.messageList.length
+      }
+    })
   }
 }
 </script>
@@ -365,157 +447,27 @@ export default {
     -webkit-border-radius: 24px;
     border-radius: 24px;
   }
-  .chat-box {
-    margin: 0 auto;
-    background: #fafafa;
-    position: absolute;
-    height: 70%;
-    width: 100%;
-    max-width: 700px;
-    header {
-      position: fixed;
-      width: 100%;
-      height: 3rem;
-      background: #409eff;
-      max-width: 700px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-      color: white;
-      font-size: 1rem;
-    }
-    .msg-box {
-      position: absolute;
-      height: calc(100% - 6.5rem);
-      width: 100%;
-      margin-top: 3rem;
-      overflow-y: scroll;
-      .msg {
-        width: 95%;
-        min-height: 2.5rem;
-        margin: 1rem 0.5rem;
-        position: relative;
-        display: flex;
-        justify-content: flex-start !important;
-        .user-head {
-          min-width: 2.5rem;
-          width: 20%;
-          width: 2.5rem;
-          height: 2.5rem;
-          border-radius: 50%;
-          background: #f1f1f1;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          .head {
-            width: 1.2rem;
-            height: 1.2rem;
-          }
-          // position: absolute;
-        }
-        .user-msg {
-          width: 80%;
-          // position: absolute;
-          word-break: break-all;
-          position: relative;
-          z-index: 5;
-          span {
-            display: inline-block;
-            padding: 0.5rem 0.7rem;
-            border-radius: 0.5rem;
-            margin-top: 0.2rem;
-            font-size: 0.88rem;
-          }
-          .left {
-            background: white;
-            animation: toLeft 0.5s ease both 1;
-          }
-          .right {
-            background: #53a8ff;
-            color: white;
-            animation: toright 0.5s ease both 1;
-          }
-          @keyframes toLeft {
-            0% {
-              opacity: 0;
-              transform: translateX(-10px);
-            }
-            100% {
-              opacity: 1;
-              transform: translateX(0px);
-            }
-          }
-          @keyframes toRight {
-            0% {
-              opacity: 0;
-              transform: translateX(10px);
-            }
-            100% {
-              opacity: 1;
-              transform: translateX(0px);
-            }
-          }
-        }
-      }
-    }
-    .input-box {
-      padding: 0 0;
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 3.5rem;
-      background: #fafafa;
-      box-shadow: 0 0 5px #ccc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      .message-input {
-        height: 2.3rem;
-        display: inline-block;
-        width: 100%;
-        padding: 0.5rem;
-        border: none;
-        border-radius: 0.2rem;
-        font-size: 0.88rem;
-      }
-      .btn {
-        height: 2.3rem;
-        min-width: 4rem;
-        background: #e0e0e0;
-        padding: 0.5rem;
-        font-size: 0.88rem;
-        color: white;
-        text-align: center;
-        border-radius: 0.2rem;
-        margin-right: 1.0rem;
-        transition: 0.5s;
-      }
-      .btn-active {
-        background: #409eff;
-      }
-    }
-  }
   .message {
     height: 48vh;
-    max-width: 880px;
+    width: 850px;
+    max-width: 850px;
     white-space: normal;
+    display: inline-block;
     .column {
-      padding: 11px;
       float: left;
-      display: inline-block;
     }
     .column.left {
-      width: 5%;
+      width: 38px;
       height: 100%;
-      max-width: 78px;
+      max-width: 38px;
       background: #303133;
+      padding: 11px;
       .icon-sms {
         width: 1em; height: 1em;
         vertical-align: -0.15em;
         fill: currentColor;
         overflow: hidden;
-        opacity: 0.75;
+        opacity: 1;
       }
       .icon-book {
         width: 1em; height: 1em;
@@ -526,15 +478,126 @@ export default {
       }
     }
     .column.middle {
-      width: 33%;
+      width: 228px;
       height: 100%;
-      max-width: 200px;
+      max-width: 228px;
       background: #eeeeee;
+      user-select: none;
+      padding: 11px;
+      .el-button--mini {
+        width: 28px;
+        padding: 7px 7px;
+        border-radius: 5px;
+      }
+      .dialogue-col {
+        :hover {
+          background: #E6E6E6
+        }
+      }
     }
     .column.right {
+      width: 430px;
       height: 100%;
-      width: 58%;
-      max-width: 550px;
+      max-width: 430px;
+      display: inline-block;
+      .wxchatBorderRightTop {
+        width: 430px;
+        height: 45px;
+        border-bottom: 1px solid #e7e7e7;
+        display: block;
+        background: whitesmoke;
+        .wxchatName {
+          color: #000000;
+          font-size: 20px;
+          float: left;
+          padding-left: 20px;
+          padding-top: 13px;
+        }
+        .wxchatMore {
+          color: #999;
+          font-size: 12px;
+          float: right;
+          margin-right: 15px;
+          padding-top: 20px;
+          cursor:pointer;
+        }
+      }
+      .wxchatBorderRightMid {
+        width: 430px;
+        height: 290px;
+        border: 2px;
+        background: whitesmoke;
+        display: block;
+        overflow-y: auto;
+        .chatPop1 :hover {
+          background-color: #FAFAFA;
+        }
+        .chatPop1 span {
+          background-color: #fff;
+          padding: 5px 8px;
+          display: inline-block;
+          border-radius: 2px;
+          margin: 0 0 10px 10px;
+          position: relative;
+          border: 1px solid #fff;
+          max-width: 290px;
+          color: black;
+          letter-spacing: 1px;
+        }
+        .chatPop1 span::after {
+          content: '';
+          border: 8px solid #ffffff00;
+          border-right: 8px solid #fff;
+          position: absolute;
+          top: 8px;
+          left: -16px;
+        }
+        .chatPop2 :hover {
+          background-color: #01DF3A;
+        }
+        .chatPop2 span {
+          background-color: #2BD54D;
+          padding: 5px 8px;
+          display: inline-block;
+          border-radius: 2px;
+          margin: 0 10px 10px 10px;
+          position: relative;
+          border: 1px solid #2BD54D;
+          max-width: 290px;
+          float: right;
+          color: black;;
+          letter-spacing: 1px;
+        }
+        .chatPop2 span::after {
+          content: '';
+          border: 8px solid #ffffff00;
+          border-right: 8px solid #2BD54D;
+          position: absolute;
+          top: 8px;
+          right: -16px;
+          transform: rotateY(180deg);
+        }
+      }
+      .wxchatBorderRightMid::-webkit-scrollbar {
+        width: 6px;
+      }
+      .wxchatBorderRightMid::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        -webkit-box-shadow: inset 0 0 5px whitesmoke;
+        background: #BDBDBD;
+      }
+      .wxchatBorderRightMid::-webkit-scrollbar-track {
+        -webkit-box-shadow: inset 0 0 5px whitesmoke;
+        border-radius: 0;
+        background: whitesmoke;
+      }
+      .wxchatBorderRightBottom {
+        width: 430px;
+        height: 152px;
+        background-color: #fff;
+        border-top: 1px solid #eee;
+        display: block;
+      }
     }
   }
 </style>

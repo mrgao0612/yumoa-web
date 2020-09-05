@@ -1,6 +1,11 @@
 <template>
     <div class="login-container">
-        <el-form ref="loginForm" status-icon :rules="rules" :model="loginForm" label-width="80px" class="login-form">
+        <el-form ref="loginForm"
+                 status-icon :rules="rules"
+                 :model="loginForm"
+                 label-width="80px"
+                 class="login-form"
+                 @keydown.enter.native="submitForm('loginForm')">
             <h2 class="login-title">YumOA</h2>
             <el-form-item prop="mobile">
                 <el-input v-model="loginForm.mobile" prefix-icon="el-icon-user" placeholder="账号/手机号" autocomplete="false" clearable></el-input>
